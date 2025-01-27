@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-namespace MonoGameSamples;
+namespace MonoGameSamples.Core;
 
 public class Game1 : Game
 {
@@ -13,6 +13,8 @@ public class Game1 : Game
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this);
+        _graphics.PreferredBackBufferWidth = 768;
+        _graphics.PreferredBackBufferHeight = 1024;
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
@@ -21,7 +23,6 @@ public class Game1 : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        // TODO: use this.Content to load your game content here
         try
         {
             SceneManager.AddScene("MainScene", new MainScene(_graphics, Content));
@@ -29,7 +30,7 @@ public class Game1 : Game
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading texture: {ex.Message}");
+            Console.Error.WriteLine(ex.Message);
         }
     }
 
@@ -39,7 +40,6 @@ public class Game1 : Game
             Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
-        // TODO: Add your update logic here
         SceneManager.Update(gameTime);
 
         base.Update(gameTime);
@@ -49,7 +49,6 @@ public class Game1 : Game
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        // TODO: Add your drawing code here
         SceneManager.Draw(gameTime, _spriteBatch);
 
         base.Draw(gameTime);

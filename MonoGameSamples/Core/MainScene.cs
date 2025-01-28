@@ -128,7 +128,7 @@ public interface IShape : IDisposable
 public class Shape(Texture2D texture, Vector2 position, Rectangle sourceRectangle) : IShape
 {
     private Texture2D Texture { get; } = texture;
-    private Vector2 Position { get; } = position;
+    public Vector2 Position { get; set; } = position; // Добавлен сеттер
     private Rectangle SourceRectangle { get; } = sourceRectangle;
 
     public void Draw(SpriteBatch spriteBatch)
@@ -149,19 +149,16 @@ public class Shape(Texture2D texture, Vector2 position, Rectangle sourceRectangl
 public class TeeweeShape : IShape
 {
     private readonly List<IShape> _shapes;
-
     private Vector2[] _positions;
     private readonly float _speed = 200f;
     private float _elapsedTime;
-    private readonly Texture2D _texture;
     private const int FrameWidth = 32;
     private const int FrameHeight = 32;
     private bool _isOnFloor;
 
     public TeeweeShape(ContentManager content)
     {
-        _texture = content.Load<Texture2D>("tetris_sprite");
-
+        var texture = content.Load<Texture2D>("tetris_sprite");
         var sourceRectangles = GenerateSourceRectangles(FrameWidth, FrameHeight);
 
         _positions =
@@ -173,7 +170,7 @@ public class TeeweeShape : IShape
         ];
 
         _shapes = _positions.Select(position =>
-            new Shape(_texture, position, sourceRectangles[0])
+            new Shape(texture, position, sourceRectangles[0])
         ).ToList<IShape>();
     }
 
@@ -181,15 +178,7 @@ public class TeeweeShape : IShape
     {
         if (_isOnFloor)
         {
-            _positions =
-            [
-                new Vector2(132, 100),
-                new Vector2(100, 100),
-                new Vector2(164, 100),
-                new Vector2(132, 132)
-            ];
-
-            RecreateShapes();
+            ResetPositions();
             _isOnFloor = false;
         }
 
@@ -200,48 +189,53 @@ public class TeeweeShape : IShape
         MoveShapes(gameTime, graphics);
         RecreateShapes();
 
-        foreach (var position in _positions)
-        {
-            if (!(position.Y + FrameHeight >= graphics.PreferredBackBufferHeight)) continue;
-
-            _isOnFloor = true;
-            break;
-        }
+        _isOnFloor = _positions.Any(position => position.Y + FrameHeight >= graphics.PreferredBackBufferHeight);
 
         _elapsedTime = 0f;
+    }
+
+    private void ResetPositions()
+    {
+        _positions =
+        [
+            new Vector2(132, 100),
+            new Vector2(100, 100),
+            new Vector2(164, 100),
+            new Vector2(132, 132)
+        ];
     }
 
     private void MoveShapes(GameTime gameTime, GraphicsDeviceManager graphics)
     {
         var delta = _speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-
         var keyboardState = Keyboard.GetState();
 
         for (var i = 0; i < _positions.Length; i++)
         {
+            var newPosition = _positions[i];
+
             if (keyboardState.IsKeyDown(Keys.Left))
-                _positions[i] = new Vector2(_positions[i].X - delta, _positions[i].Y);
+                newPosition.X -= delta;
             else if (keyboardState.IsKeyDown(Keys.Right))
-                _positions[i] = new Vector2(_positions[i].X + delta, _positions[i].Y);
+                newPosition.X += delta;
 
-            _positions[i] = new Vector2(_positions[i].X, _positions[i].Y + delta);
+            newPosition.Y += delta;
 
-            var screenWidth = graphics.PreferredBackBufferWidth;
-            var screenHeight = graphics.PreferredBackBufferHeight;
+            newPosition.X = MathHelper.Clamp(newPosition.X, 0, graphics.PreferredBackBufferWidth - FrameWidth);
+            newPosition.Y = MathHelper.Clamp(newPosition.Y, 0, graphics.PreferredBackBufferHeight - FrameHeight);
 
-            _positions[i] = new Vector2(
-                MathHelper.Clamp(_positions[i].X, 0, screenWidth - FrameWidth),
-                MathHelper.Clamp(_positions[i].Y, 0, screenHeight - FrameHeight)
-            );
+            _positions[i] = newPosition;
         }
     }
 
     private void RecreateShapes()
     {
-        var sourceRectangles = GenerateSourceRectangles(FrameWidth, FrameHeight);
         for (var i = 0; i < _positions.Length; i++)
         {
-            _shapes[i] = new Shape(_texture, _positions[i], sourceRectangles[0]);
+            if (_shapes[i] is Shape shape)
+            {
+                shape.Position = _positions[i];
+            }
         }
     }
 
